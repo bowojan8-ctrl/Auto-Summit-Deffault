@@ -19,7 +19,7 @@ local ResetToBasecamp = ReplicatedStorage
 local checkpoints = {
     Vector3.new(-579.1475219726562, 624.026123046875, -78.85343170166016), -- CP 1
     Vector3.new(-1364.73046875, 652.6585693359375, -155.96739196777344), -- CP 2
-    Vector3.new(-2097.509521484375, 795.9183959960938, -208.92990112304688), -- CP 3
+    Vector3.new(-2097.509521484375, 795.9183959960938, -208.9299012451172), -- CP 3
     Vector3.new(-2859.6875, 831.7704467773438, -279.41064453125), -- CP 4
     Vector3.new(-3794.052978515625, 944.789306640625, -364.7239990234375), -- CP 5
     Vector3.new(-4104.298828125, 1049.272705078125, -1017.1075439453125), -- CP 6
@@ -144,7 +144,6 @@ local function CreateButton(text, callback)
 
     btn.MouseButton1Click:Connect(function()
 
-        -- Animasi klik
         TweenService:Create(
             btn,
             TweenInfo.new(0.1),
@@ -173,16 +172,76 @@ end
 
 --==================================================
 -- AUTO TP + AUTO RESET CHECKPOINT
+-- AUTO ON SAAT EXECUTE
 --==================================================
 
 local autoTog = true
 
 local AutoBtn = CreateButton(
-    "Auto TP Mount Sumbing: ON",
+    "Auto TP Mount Sumbing: ON (Running...)",
     function()
     end
 )
 
+-- Fungsi menjalankan Auto TP
+local function StartAutoTP()
+
+    if not autoTog then
+        return
+    end
+
+    AutoBtn.Text = "Auto TP Mount Sumbing: ON (Running...)"
+    AutoBtn.BorderColor3 = Color3.fromRGB(150, 150, 150)
+
+    task.spawn(function()
+
+        while autoTog do
+
+            -- =================================
+            -- CP 1 → SUMMIT
+            -- =================================
+
+            for i, cp in ipairs(checkpoints) do
+
+                if not autoTog then
+                    break
+                end
+
+                -- Teleport ke checkpoint
+                teleportTo(cp)
+
+                -- Kalau sudah Summit
+                if i == #checkpoints then
+
+                    -- Beri sedikit waktu setelah sampai Summit
+                    task.wait(0.5)
+
+                    if not autoTog then
+                        break
+                    end
+
+                    task.wait(3)
+
+                    -- RESET CHECKPOINT KE BASECAMP
+                    ResetToBasecamp:FireServer()
+
+                    -- Tunggu setelah reset
+                    task.wait(3)
+
+                else
+
+                    -- Delay antar checkpoint
+                    task.wait(1)
+
+                end
+            end
+
+        end
+
+    end)
+end
+
+-- Tombol ON/OFF
 AutoBtn.MouseButton1Click:Connect(function()
 
     autoTog = not autoTog
@@ -192,51 +251,7 @@ AutoBtn.MouseButton1Click:Connect(function()
         AutoBtn.Text = "Auto TP Mount Sumbing: ON (Running...)"
         AutoBtn.BorderColor3 = Color3.fromRGB(150, 150, 150)
 
-        task.spawn(function()
-
-            while autoTog do
-
-                -- =================================
-                -- CP 1 → SUMMIT
-                -- =================================
-
-                for i, cp in ipairs(checkpoints) do
-
-                    if not autoTog then
-                        break
-                    end
-
-                    -- Teleport ke checkpoint
-                    teleportTo(cp)
-
-                    -- Kalau sudah Summit
-                    if i == #checkpoints then
-
-                        -- Beri sedikit waktu setelah sampai Summit
-                        task.wait(0.5)
-
-                        if not autoTog then
-                            break
-                        end
-                        task.wait(3)
-
-                        -- RESET CHECKPOINT KE BASECAMP
-                        ResetToBasecamp:FireServer()
-
-                        -- Tunggu 3 detik setelah reset
-                        task.wait(3)
-
-                    else
-
-                        -- Delay antar checkpoint
-                        task.wait(1)
-
-                    end
-                end
-
-            end
-
-        end)
+        StartAutoTP()
 
     else
 
@@ -244,7 +259,11 @@ AutoBtn.MouseButton1Click:Connect(function()
         AutoBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
 
     end
+
 end)
+
+-- LANGSUNG START SAAT EXECUTE
+StartAutoTP()
 
 -- Spacer
 local Spacer = Instance.new("Frame")
