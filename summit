@@ -1,0 +1,343 @@
+--[[
+    BALJITOT Hub - UI BloodMoon (Hitam Putih)
+    Map: Mount RAGNAR
+    Author: BALJITOT
+--]]
+
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Remote untuk Reset Checkpoint / Basecamp
+local ResetToBasecamp = ReplicatedStorage
+    :WaitForChild("Remotes")
+    :WaitForChild("ResetToBasecamp")
+
+-- Database Koordinat
+local checkpoints = {
+    Vector3.new(-579.1475219726562, 624.026123046875, -78.85343170166016), -- CP 1
+    Vector3.new(-1364.73046875, 652.6585693359375, -155.96739196777344), -- CP 2
+    Vector3.new(-2097.509521484375, 795.9183959960938, -208.92990112304688), -- CP 3
+    Vector3.new(-2859.6875, 831.7704467773438, -279.41064453125), -- CP 4
+    Vector3.new(-3794.052978515625, 944.789306640625, -364.7239990234375), -- CP 5
+    Vector3.new(-4104.298828125, 1049.272705078125, -1017.1075439453125), -- CP 6
+    Vector3.new(-4024.646484375, 1180.1148681640625, -1877.8720703125), -- CP 7
+    Vector3.new(-3962.480224609375, 1296.2886962890625, -2554.3173828125), -- CP 8
+    Vector3.new(-3881.2587890625, 1412.909423828125, -3421.817626953125), -- CP 9
+    Vector3.new(-3815.087890625, 1525.779541015625, -4333.360839843752), -- CP 10
+    Vector3.new(-4757.13916015625, 1725.1759033203125, -4609.984375), -- CP 11
+    Vector3.new(-5556.4873046875, 1908.7003173828125, -4664.57373046875), -- CP 12
+    Vector3.new(-6364.912109375, 1986.217529296875, -4706.21435546875), -- CP 13
+    Vector3.new(-7150.57421875, 2164.8291015625, -4778.123046875), -- CP 14
+    Vector3.new(-7863.50146484375, 2366.209716796875, -4846.42529296875), -- CP 15
+    Vector3.new(-8773.3125, 2642.4873046875, -4933.857421875), -- CP 16
+    Vector3.new(-9346.1708984375, 2774.08642578125, -4984.46533203125), -- SUMMIT
+}
+
+-- Mencegah duplikasi UI
+if game.CoreGui:FindFirstChild("RizzScriptHub") then
+    game.CoreGui.RizzScriptHub:Destroy()
+end
+
+-- Membuat UI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RizzScriptHub"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BorderSizePixel = 2
+MainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -200)
+MainFrame.Size = UDim2.new(0, 350, 0, 0)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.ClipsDescendants = true
+
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Parent = MainFrame
+TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.BorderSizePixel = 0
+
+local TitleText = Instance.new("TextLabel")
+TitleText.Parent = TitleBar
+TitleText.BackgroundTransparency = 1
+TitleText.Position = UDim2.new(0, 10, 0, 0)
+TitleText.Size = UDim2.new(0.7, 0, 1, 0)
+TitleText.Font = Enum.Font.GothamBold
+TitleText.Text = "BALJITOT HUB - MAIN BARENG GENGZ"
+TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleText.TextSize = 14
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Parent = TitleBar
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Position = UDim2.new(1, -35, 0, 10)
+CloseBtn.Size = UDim2.new(0, 20, 0, 20)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+CloseBtn.TextSize = 12
+
+local MinBtn = Instance.new("TextButton")
+MinBtn.Parent = TitleBar
+MinBtn.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+MinBtn.Position = UDim2.new(1, -65, 0, 10)
+MinBtn.Size = UDim2.new(0, 20, 0, 20)
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.Text = "-"
+MinBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+MinBtn.TextSize = 14
+
+local Container = Instance.new("ScrollingFrame")
+Container.Parent = MainFrame
+Container.Active = true
+Container.BackgroundTransparency = 1
+Container.Position = UDim2.new(0, 0, 0, 45)
+Container.Size = UDim2.new(1, 0, 1, -50)
+Container.CanvasSize = UDim2.new(0, 0, 4, 200)
+Container.ScrollBarThickness = 10
+Container.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = Container
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.Padding = UDim.new(0, 8)
+
+-- Animasi Muncul
+TweenService:Create(
+    MainFrame,
+    TweenInfo.new(0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+    {Size = UDim2.new(0, 350, 0, 400)}
+):Play()
+
+-- Logika Teleport
+local function teleportTo(pos)
+    if LocalPlayer.Character
+        and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(pos)
+    end
+end
+
+-- Komponen Pembuat Tombol
+local function CreateButton(text, callback)
+    local btn = Instance.new("TextButton")
+
+    btn.Parent = Container
+    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    btn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    btn.BorderSizePixel = 1
+    btn.Size = UDim2.new(0.9, 0, 0, 35)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 13
+
+    btn.MouseButton1Click:Connect(function()
+
+        -- Animasi klik
+        TweenService:Create(
+            btn,
+            TweenInfo.new(0.1),
+            {
+                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                TextColor3 = Color3.fromRGB(0, 0, 0)
+            }
+        ):Play()
+
+        task.wait(0.1)
+
+        TweenService:Create(
+            btn,
+            TweenInfo.new(0.1),
+            {
+                BackgroundColor3 = Color3.fromRGB(25, 25, 25),
+                TextColor3 = Color3.fromRGB(255, 255, 255)
+            }
+        ):Play()
+
+        callback()
+    end)
+
+    return btn
+end
+
+--==================================================
+-- AUTO TP + AUTO RESET CHECKPOINT
+--==================================================
+
+local autoTog = false
+
+local AutoBtn = CreateButton(
+    "Auto TP Mount Sumbing: OFF",
+    function()
+    end
+)
+
+AutoBtn.MouseButton1Click:Connect(function()
+
+    autoTog = not autoTog
+
+    if autoTog then
+
+        AutoBtn.Text = "Auto TP Mount Sumbing: ON (Running...)"
+        AutoBtn.BorderColor3 = Color3.fromRGB(150, 150, 150)
+
+        task.spawn(function()
+
+            while autoTog do
+
+                -- =================================
+                -- CP 1 → SUMMIT
+                -- =================================
+
+                for i, cp in ipairs(checkpoints) do
+
+                    if not autoTog then
+                        break
+                    end
+
+                    -- Teleport ke checkpoint
+                    teleportTo(cp)
+
+                    -- Kalau sudah Summit
+                    if i == #checkpoints then
+
+                        -- Beri sedikit waktu setelah sampai Summit
+                        task.wait(0.5)
+
+                        if not autoTog then
+                            break
+                        end
+                        task.wait(3)
+
+                        -- RESET CHECKPOINT KE BASECAMP
+                        ResetToBasecamp:FireServer()
+
+                        -- Tunggu 3 detik setelah reset
+                        task.wait(3)
+
+                    else
+
+                        -- Delay antar checkpoint
+                        task.wait(1)
+
+                    end
+                end
+
+            end
+
+        end)
+
+    else
+
+        AutoBtn.Text = "Auto TP Mount Sumbing: OFF"
+        AutoBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+
+    end
+end)
+
+-- Spacer
+local Spacer = Instance.new("Frame")
+Spacer.Parent = Container
+Spacer.BackgroundTransparency = 1
+Spacer.Size = UDim2.new(1, 0, 0, 5)
+
+-- Manual TP Buttons
+for i, cp in ipairs(checkpoints) do
+
+    CreateButton(
+        "Manual TP - Checkpoint " .. i,
+        function()
+            teleportTo(cp)
+        end
+    )
+
+end
+
+-- Spacer
+local Spacer2 = Instance.new("Frame")
+Spacer2.Parent = Container
+Spacer2.BackgroundTransparency = 1
+Spacer2.Size = UDim2.new(1, 0, 0, 5)
+
+-- Website
+CreateButton(
+    "Copy Website Link",
+    function()
+
+        if setclipboard then
+
+            setclipboard("https://www.instagram.com/ariefwibowooo")
+
+            game.StarterGui:SetCore("SendNotification", {
+                Title = "BALJITOT Hub",
+                Text = "Link website berhasil disalin ke clipboard!",
+                Duration = 3
+            })
+
+        end
+
+    end
+)
+
+--==================================================
+-- MINIMIZE & CLOSE
+--==================================================
+
+local isMinimized = false
+
+MinBtn.MouseButton1Click:Connect(function()
+
+    isMinimized = not isMinimized
+
+    if isMinimized then
+
+        TweenService:Create(
+            MainFrame,
+            TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+            {Size = UDim2.new(0, 350, 0, 40)}
+        ):Play()
+
+        Container.Visible = false
+
+    else
+
+        TweenService:Create(
+            MainFrame,
+            TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+            {Size = UDim2.new(0, 350, 0, 400)}
+        ):Play()
+
+        Container.Visible = true
+
+    end
+
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+
+    autoTog = false
+
+    local closeTween = TweenService:Create(
+        MainFrame,
+        TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In),
+        {Size = UDim2.new(0, 350, 0, 0)}
+    )
+
+    closeTween:Play()
+
+    closeTween.Completed:Connect(function()
+        ScreenGui:Destroy()
+    end)
+
+end)
