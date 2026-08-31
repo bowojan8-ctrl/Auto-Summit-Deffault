@@ -175,10 +175,10 @@ end
 -- AUTO TP + AUTO RESET CHECKPOINT
 --==================================================
 
-local autoTog = false
+local autoTog = true
 
 local AutoBtn = CreateButton(
-    "Auto TP Mount Sumbing: OFF",
+    "Auto TP Mount Sumbing: ON",
     function()
     end
 )
