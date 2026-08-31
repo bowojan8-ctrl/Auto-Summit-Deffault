@@ -1,50 +1,53 @@
 --[[
-    BALJITOT Hub - UI BloodMoon
-    Map: Mount RAGNAR
-    Auto TP + Auto Reset + Anti-AFK
-    Author: BALJITOT
+    BALJITOT HUB - MOUNT RAGNAR
+    Auto Summit + Auto Reset + Anti-AFK + Auto Reconnect
 ]]
+
+--==================================================
+-- SERVICES
+--==================================================
 
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
+local TeleportService = game:GetService("TeleportService")
+local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
+local PlaceId = game.PlaceId
 
 --==================================================
--- ANTI-AFK
--- OTOMATIS ON SAAT SCRIPT DIJALANKAN
+-- CONFIG
 --==================================================
 
 local AntiAFKEnabled = true
-local LastActivity = tick()
-local LastAntiAFK = tick()
+local AutoSummitEnabled = true
+local ReconnectEnabled = true
 
--- Hapus koneksi Anti-AFK lama milik script ini
-if getgenv().BALJITOTAntiAFKConnection then
-    pcall(function()
-        getgenv().BALJITOTAntiAFKConnection:Disconnect()
-    end)
-    getgenv().BALJITOTAntiAFKConnection = nil
+local AFK_INTERVAL = 60
+
+--==================================================
+-- CLEAN OLD SCRIPT
+--==================================================
+
+if getgenv().BALJITOT_RUNNING then
+    getgenv().BALJITOT_RUNNING = false
 end
 
--- Reset timer ketika user benar-benar melakukan input
-local UserInputService = game:GetService("UserInputService")
+getgenv().BALJITOT_RUNNING = true
 
-UserInputService.InputBegan:Connect(function()
-    LastActivity = tick()
-end)
+if getgenv().BALJITOT_AFK_CONNECTION then
+    pcall(function()
+        getgenv().BALJITOT_AFK_CONNECTION:Disconnect()
+    end)
+end
 
-UserInputService.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Gamepad1 then
-        LastActivity = tick()
-    end
-end)
+--==================================================
+-- ANTI-AFK
+--==================================================
 
--- Menangani event idle
-getgenv().BALJITOTAntiAFKConnection =
+getgenv().BALJITOT_AFK_CONNECTION =
     LocalPlayer.Idled:Connect(function()
 
         if not AntiAFKEnabled then
@@ -56,28 +59,20 @@ getgenv().BALJITOTAntiAFKConnection =
             VirtualUser:ClickButton2(Vector2.new())
         end)
 
-        LastAntiAFK = tick()
-
     end)
 
--- Cadangan: cek secara berkala
 task.spawn(function()
 
-    while AntiAFKEnabled do
+    while getgenv().BALJITOT_RUNNING do
 
-        task.wait(5)
+        task.wait(AFK_INTERVAL)
 
-        local idleTime = tick() - LastActivity
-
-        if idleTime >= 300
-            and tick() - LastAntiAFK >= 60 then
+        if AntiAFKEnabled then
 
             pcall(function()
                 VirtualUser:CaptureController()
                 VirtualUser:ClickButton2(Vector2.new())
             end)
-
-            LastAntiAFK = tick()
 
         end
 
@@ -86,149 +81,129 @@ task.spawn(function()
 end)
 
 --==================================================
--- REMOTE
+-- RESET REMOTE
 --==================================================
 
-local ResetToBasecamp = ReplicatedStorage
-    :WaitForChild("Remotes")
-    :WaitForChild("ResetToBasecamp")
+local ResetToBasecamp =
+    ReplicatedStorage
+        :WaitForChild("Remotes")
+        :WaitForChild("ResetToBasecamp")
 
 --==================================================
--- CHECKPOINT
+-- CHECKPOINT DATABASE
 --==================================================
 
 local checkpoints = {
 
-    Vector3.new(-579.1475219726562, 624.026123046875, -78.85343170166016),
-    Vector3.new(-1364.73046875, 652.6585693359375, -155.96739196777344),
-    Vector3.new(-2097.509521484375, 795.9183959960938, -208.92990112304688),
-    Vector3.new(-2859.6875, 831.7704467773438, -279.41064453125),
-    Vector3.new(-3794.052978515625, 944.789306640625, -364.7239990234375),
-    Vector3.new(-4104.298828125, 1049.272705078125, -1017.1075439453125),
-    Vector3.new(-4024.646484375, 1180.1148681640625, -1877.8720703125),
-    Vector3.new(-3962.480224609375, 1296.2886962890625, -2554.3173828125),
-    Vector3.new(-3881.2587890625, 1412.909423828125, -3421.817626953125),
-    Vector3.new(-3815.087890625, 1525.779541015625, -4333.360839843752),
-    Vector3.new(-4757.13916015625, 1725.1759033203125, -4609.984375),
-    Vector3.new(-5556.4873046875, 1908.7003173828125, -4664.57373046875),
-    Vector3.new(-6364.912109375, 1986.217529296875, -4706.21435546875),
-    Vector3.new(-7150.57421875, 2164.8291015625, -4778.123046875),
-    Vector3.new(-7863.50146484375, 2366.209716796875, -4846.42529296875),
-    Vector3.new(-8773.3125, 2642.4873046875, -4933.857421875),
-    Vector3.new(-9348.330078, 2777.490234, -4984.669922),
+    Vector3.new(
+        -579.1475219726562,
+        624.026123046875,
+        -78.85343170166016
+    ),
+
+    Vector3.new(
+        -1364.73046875,
+        652.6585693359375,
+        -155.96739196777344
+    ),
+
+    Vector3.new(
+        -2097.509521484375,
+        795.9183959960938,
+        -208.92990112304688
+    ),
+
+    Vector3.new(
+        -2859.6875,
+        831.7704467773438,
+        -279.41064453125
+    ),
+
+    Vector3.new(
+        -3794.052978515625,
+        944.789306640625,
+        -364.7239990234375
+    ),
+
+    Vector3.new(
+        -4104.298828125,
+        1049.272705078125,
+        -1017.1075439453125
+    ),
+
+    Vector3.new(
+        -4024.646484375,
+        1180.1148681640625,
+        -1877.8720703125
+    ),
+
+    Vector3.new(
+        -3962.480224609375,
+        1296.2886962890625,
+        -2554.3173828125
+    ),
+
+    Vector3.new(
+        -3881.2587890625,
+        1412.909423828125,
+        -3421.817626953125
+    ),
+
+    Vector3.new(
+        -3815.087890625,
+        1525.779541015625,
+        -4333.360839843752
+    ),
+
+    Vector3.new(
+        -4757.13916015625,
+        1725.1759033203125,
+        -4609.984375
+    ),
+
+    Vector3.new(
+        -5556.4873046875,
+        1908.7003173828125,
+        -4664.57373046875
+    ),
+
+    Vector3.new(
+        -6364.912109375,
+        1986.217529296875,
+        -4706.21435546875
+    ),
+
+    Vector3.new(
+        -7150.57421875,
+        2164.8291015625,
+        -4778.123046875
+    ),
+
+    Vector3.new(
+        -7863.50146484375,
+        2366.209716796875,
+        -4846.42529296875
+    ),
+
+    Vector3.new(
+        -8773.3125,
+        2642.4873046875,
+        -4933.857421875
+    ),
+
+    Vector3.new(
+        -9348.330078,
+        2777.490234,
+        -4984.669922
+    ),
 
 }
 
 --==================================================
--- REMOVE UI LAMA
+-- TELEPORT FUNCTION
 --==================================================
 
-if game.CoreGui:FindFirstChild("RizzScriptHub") then
-    game.CoreGui.RizzScriptHub:Destroy()
-end
-
---==================================================
--- UI
---==================================================
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "RizzScriptHub"
-ScreenGui.Parent = game.CoreGui
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -200)
-MainFrame.Size = UDim2.new(0, 350, 0, 0)
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.ClipsDescendants = true
-
---==================================================
--- TITLE
---==================================================
-
-local TitleBar = Instance.new("Frame")
-TitleBar.Parent = MainFrame
-TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-TitleBar.Size = UDim2.new(1, 0, 0, 40)
-TitleBar.BorderSizePixel = 0
-
-local TitleText = Instance.new("TextLabel")
-TitleText.Parent = TitleBar
-TitleText.BackgroundTransparency = 1
-TitleText.Position = UDim2.new(0, 10, 0, 0)
-TitleText.Size = UDim2.new(0.7, 0, 1, 0)
-TitleText.Font = Enum.Font.GothamBold
-TitleText.Text = "BALJITOT HUB - MAIN BARENG GENGZ"
-TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleText.TextSize = 14
-TitleText.TextXAlignment = Enum.TextXAlignment.Left
-
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Parent = TitleBar
-CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.Position = UDim2.new(1, -35, 0, 10)
-CloseBtn.Size = UDim2.new(0, 20, 0, 20)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-CloseBtn.TextSize = 12
-
-local MinBtn = Instance.new("TextButton")
-MinBtn.Parent = TitleBar
-MinBtn.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
-MinBtn.Position = UDim2.new(1, -65, 0, 10)
-MinBtn.Size = UDim2.new(0, 20, 0, 20)
-MinBtn.Font = Enum.Font.GothamBold
-MinBtn.Text = "-"
-MinBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-MinBtn.TextSize = 14
-
---==================================================
--- CONTAINER
---==================================================
-
-local Container = Instance.new("ScrollingFrame")
-Container.Parent = MainFrame
-Container.Active = true
-Container.BackgroundTransparency = 1
-Container.Position = UDim2.new(0, 0, 0, 45)
-Container.Size = UDim2.new(1, 0, 1, -50)
-Container.CanvasSize = UDim2.new(0, 0, 4, 200)
-Container.ScrollBarThickness = 10
-Container.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
-
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Parent = Container
-UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-UIListLayout.Padding = UDim.new(0, 8)
-
---==================================================
--- OPEN ANIMATION
---==================================================
-
-TweenService:Create(
-    MainFrame,
-    TweenInfo.new(
-        0.6,
-        Enum.EasingStyle.Quart,
-        Enum.EasingDirection.Out
-    ),
-    {
-        Size = UDim2.new(0, 350, 0, 400)
-    }
-):Play()
-
---==================================================
--- TELEPORT
---==================================================
-
-local function teleportTo(pos)
+local function teleportTo(position)
 
     pcall(function()
 
@@ -238,146 +213,56 @@ local function teleportTo(pos)
             return
         end
 
-        local hrp = character:FindFirstChild("HumanoidRootPart")
+        local root =
+            character:FindFirstChild("HumanoidRootPart")
 
-        if not hrp then
+        if not root then
             return
         end
 
-        hrp.CFrame = CFrame.new(pos)
+        root.CFrame = CFrame.new(position)
 
     end)
 
 end
 
 --==================================================
--- BUTTON CREATOR
+-- AUTO SUMMIT
 --==================================================
 
-local function CreateButton(text, callback)
+task.spawn(function()
 
-    local btn = Instance.new("TextButton")
+    while getgenv().BALJITOT_RUNNING do
 
-    btn.Parent = Container
-    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    btn.BorderColor3 = Color3.fromRGB(255, 255, 255)
-    btn.BorderSizePixel = 1
-    btn.Size = UDim2.new(0.9, 0, 0, 35)
-    btn.Font = Enum.Font.GothamSemibold
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 13
+        if AutoSummitEnabled then
 
-    btn.MouseButton1Click:Connect(function()
+            for i, position in ipairs(checkpoints) do
 
-        TweenService:Create(
-            btn,
-            TweenInfo.new(0.1),
-            {
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                TextColor3 = Color3.fromRGB(0, 0, 0)
-            }
-        ):Play()
-
-        task.wait(0.1)
-
-        TweenService:Create(
-            btn,
-            TweenInfo.new(0.1),
-            {
-                BackgroundColor3 = Color3.fromRGB(25, 25, 25),
-                TextColor3 = Color3.fromRGB(255, 255, 255)
-            }
-        ):Play()
-
-        callback()
-
-    end)
-
-    return btn
-
-end
-
---==================================================
--- ANTI-AFK BUTTON
---==================================================
-
-local AntiAFKBtn = CreateButton(
-    "Anti-AFK: ON",
-    function()
-
-        AntiAFKEnabled = not AntiAFKEnabled
-
-        if AntiAFKEnabled then
-
-            AntiAFKBtn.Text = "Anti-AFK: ON"
-            AntiAFKBtn.BorderColor3 = Color3.fromRGB(150, 150, 150)
-
-            LastActivity = tick()
-            LastAntiAFK = tick()
-
-        else
-
-            AntiAFKBtn.Text = "Anti-AFK: OFF"
-            AntiAFKBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
-
-        end
-
-    end
-)
-
-AntiAFKBtn.BorderColor3 = Color3.fromRGB(150, 150, 150)
-
---==================================================
--- AUTO TP
---==================================================
-
-local autoTog = true
-local autoRunning = false
-
-local AutoBtn = CreateButton(
-    "Auto TP Mount Sumbing: ON (Running...)",
-    function()
-    end
-)
-
-local function StartAutoTP()
-
-    if autoRunning or not autoTog then
-        return
-    end
-
-    autoRunning = true
-
-    AutoBtn.Text = "Auto TP Mount Sumbing: ON (Running...)"
-    AutoBtn.BorderColor3 = Color3.fromRGB(150, 150, 150)
-
-    task.spawn(function()
-
-        while autoTog do
-
-            for i, cp in ipairs(checkpoints) do
-
-                if not autoTog then
+                if not getgenv().BALJITOT_RUNNING then
                     break
                 end
 
-                teleportTo(cp)
+                if not AutoSummitEnabled then
+                    break
+                end
+
+                teleportTo(position)
 
                 if i == #checkpoints then
 
-                    task.wait(0.5)
+                    -- Tunggu summit terdaftar
+                    task.wait(3)
 
-                    if not autoTog then
+                    if not AutoSummitEnabled then
                         break
                     end
 
-                    task.wait(3)
-
+                    -- Reset checkpoint ke basecamp
                     pcall(function()
                         ResetToBasecamp:FireServer()
                     end)
 
+                    -- Tunggu setelah reset
                     task.wait(3)
 
                 else
@@ -390,50 +275,310 @@ local function StartAutoTP()
 
         end
 
-        autoRunning = false
-
-    end)
-
-end
-
-AutoBtn.MouseButton1Click:Connect(function()
-
-    autoTog = not autoTog
-
-    if autoTog then
-
-        AutoBtn.Text = "Auto TP Mount Sumbing: ON (Running...)"
-        AutoBtn.BorderColor3 = Color3.fromRGB(150, 150, 150)
-
-        StartAutoTP()
-
-    else
-
-        AutoBtn.Text = "Auto TP Mount Sumbing: OFF"
-        AutoBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+        task.wait(0.5)
 
     end
 
 end)
 
 --==================================================
--- AUTO START
+-- AUTO RECONNECT
+-- DISCONNECT / ERROR SAJA
 --==================================================
 
-StartAutoTP()
+if ReconnectEnabled then
+
+    pcall(function()
+
+        TeleportService:SetTeleportGui(nil)
+
+    end)
+
+    TeleportService.TeleportInitFailed:Connect(
+        function(player, teleportResult, errorMessage)
+
+            if player ~= LocalPlayer then
+                return
+            end
+
+            warn(
+                "[BALJITOT] Reconnect gagal: ",
+                tostring(teleportResult),
+                tostring(errorMessage)
+            )
+
+            task.wait(5)
+
+            if ReconnectEnabled then
+
+                pcall(function()
+
+                    TeleportService:Teleport(
+                        PlaceId,
+                        LocalPlayer
+                    )
+
+                end)
+
+            end
+
+        end
+    )
+
+    -- Coba kembali ke experience apabila Roblox
+    -- mengirimkan kondisi teleport/disconnect tertentu.
+    game:GetService("GuiService").ErrorMessageChanged:Connect(
+        function(message)
+
+            if not ReconnectEnabled then
+                return
+            end
+
+            if message and message ~= "" then
+
+                warn(
+                    "[BALJITOT] Connection/Error: ",
+                    tostring(message)
+                )
+
+                task.wait(5)
+
+                pcall(function()
+
+                    TeleportService:Teleport(
+                        PlaceId,
+                        LocalPlayer
+                    )
+
+                end)
+
+            end
+
+        end
+    )
+
+end
 
 --==================================================
--- SPACER
+-- UI
+--==================================================
+
+if CoreGui:FindFirstChild("RizzScriptHub") then
+    CoreGui.RizzScriptHub:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RizzScriptHub"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 =
+    Color3.fromRGB(15, 15, 15)
+
+MainFrame.BorderSizePixel = 2
+MainFrame.BorderColor3 =
+    Color3.fromRGB(255, 255, 255)
+
+MainFrame.Position =
+    UDim2.new(0.5, -175, 0.5, -200)
+
+MainFrame.Size =
+    UDim2.new(0, 350, 0, 0)
+
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.ClipsDescendants = true
+
+local TitleBar = Instance.new("Frame")
+TitleBar.Parent = MainFrame
+TitleBar.BackgroundColor3 =
+    Color3.fromRGB(30, 30, 30)
+
+TitleBar.Size =
+    UDim2.new(1, 0, 0, 40)
+
+local TitleText = Instance.new("TextLabel")
+TitleText.Parent = TitleBar
+TitleText.BackgroundTransparency = 1
+TitleText.Position =
+    UDim2.new(0, 10, 0, 0)
+
+TitleText.Size =
+    UDim2.new(0.7, 0, 1, 0)
+
+TitleText.Font =
+    Enum.Font.GothamBold
+
+TitleText.Text =
+    "BALJITOT HUB - MAIN BARENG GENGZ"
+
+TitleText.TextColor3 =
+    Color3.fromRGB(255, 255, 255)
+
+TitleText.TextSize = 14
+TitleText.TextXAlignment =
+    Enum.TextXAlignment.Left
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Parent = TitleBar
+CloseBtn.BackgroundColor3 =
+    Color3.fromRGB(255, 255, 255)
+
+CloseBtn.Position =
+    UDim2.new(1, -35, 0, 10)
+
+CloseBtn.Size =
+    UDim2.new(0, 20, 0, 20)
+
+CloseBtn.Font =
+    Enum.Font.GothamBold
+
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 =
+    Color3.fromRGB(0, 0, 0)
+
+CloseBtn.TextSize = 12
+
+local MinBtn = Instance.new("TextButton")
+MinBtn.Parent = TitleBar
+MinBtn.BackgroundColor3 =
+    Color3.fromRGB(150, 150, 150)
+
+MinBtn.Position =
+    UDim2.new(1, -65, 0, 10)
+
+MinBtn.Size =
+    UDim2.new(0, 20, 0, 20)
+
+MinBtn.Font =
+    Enum.Font.GothamBold
+
+MinBtn.Text = "-"
+MinBtn.TextColor3 =
+    Color3.fromRGB(0, 0, 0)
+
+MinBtn.TextSize = 14
+
+local Container = Instance.new("ScrollingFrame")
+Container.Parent = MainFrame
+Container.Active = true
+Container.BackgroundTransparency = 1
+
+Container.Position =
+    UDim2.new(0, 0, 0, 45)
+
+Container.Size =
+    UDim2.new(1, 0, 1, -50)
+
+Container.CanvasSize =
+    UDim2.new(0, 0, 4, 200)
+
+Container.ScrollBarThickness = 10
+Container.ScrollBarImageColor3 =
+    Color3.fromRGB(255, 255, 255)
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = Container
+UIListLayout.HorizontalAlignment =
+    Enum.HorizontalAlignment.Center
+
+UIListLayout.Padding =
+    UDim.new(0, 8)
+
+--==================================================
+-- BUTTON CREATOR
+--==================================================
+
+local function CreateButton(text, callback)
+
+    local btn = Instance.new("TextButton")
+
+    btn.Parent = Container
+
+    btn.BackgroundColor3 =
+        Color3.fromRGB(25, 25, 25)
+
+    btn.BorderColor3 =
+        Color3.fromRGB(255, 255, 255)
+
+    btn.Size =
+        UDim2.new(0.9, 0, 0, 35)
+
+    btn.Font =
+        Enum.Font.GothamSemibold
+
+    btn.Text = text
+
+    btn.TextColor3 =
+        Color3.fromRGB(255, 255, 255)
+
+    btn.TextSize = 13
+
+    btn.MouseButton1Click:Connect(function()
+        callback()
+    end)
+
+    return btn
+
+end
+
+--==================================================
+-- STATUS BUTTONS
+--==================================================
+
+local AntiAFKBtn = CreateButton(
+    "Anti-AFK: ON",
+    function()
+
+        AntiAFKEnabled =
+            not AntiAFKEnabled
+
+        AntiAFKBtn.Text =
+            "Anti-AFK: " ..
+            (AntiAFKEnabled and "ON" or "OFF")
+
+    end
+)
+
+local AutoBtn = CreateButton(
+    "Auto Summit: ON",
+    function()
+
+        AutoSummitEnabled =
+            not AutoSummitEnabled
+
+        AutoBtn.Text =
+            "Auto Summit: " ..
+            (AutoSummitEnabled and "ON" or "OFF")
+
+    end
+)
+
+local ReconnectBtn = CreateButton(
+    "Auto Reconnect: ON",
+    function()
+
+        ReconnectEnabled =
+            not ReconnectEnabled
+
+        ReconnectBtn.Text =
+            "Auto Reconnect: " ..
+            (ReconnectEnabled and "ON" or "OFF")
+
+    end
+)
+
+--==================================================
+-- MANUAL TP
 --==================================================
 
 local Spacer = Instance.new("Frame")
 Spacer.Parent = Container
 Spacer.BackgroundTransparency = 1
-Spacer.Size = UDim2.new(1, 0, 0, 5)
-
---==================================================
--- MANUAL TP
---==================================================
+Spacer.Size =
+    UDim2.new(1, 0, 0, 5)
 
 for i, cp in ipairs(checkpoints) do
 
@@ -447,39 +592,6 @@ for i, cp in ipairs(checkpoints) do
 end
 
 --==================================================
--- WEBSITE
---==================================================
-
-local Spacer2 = Instance.new("Frame")
-Spacer2.Parent = Container
-Spacer2.BackgroundTransparency = 1
-Spacer2.Size = UDim2.new(1, 0, 0, 5)
-
-CreateButton(
-    "Copy Website Link",
-    function()
-
-        if setclipboard then
-
-            setclipboard(
-                "https://www.instagram.com/ariefwibowooo"
-            )
-
-            game.StarterGui:SetCore(
-                "SendNotification",
-                {
-                    Title = "BALJITOT Hub",
-                    Text = "Link website berhasil disalin ke clipboard!",
-                    Duration = 3
-                }
-            )
-
-        end
-
-    end
-)
-
---==================================================
 -- MINIMIZE
 --==================================================
 
@@ -491,33 +603,15 @@ MinBtn.MouseButton1Click:Connect(function()
 
     if isMinimized then
 
-        TweenService:Create(
-            MainFrame,
-            TweenInfo.new(
-                0.4,
-                Enum.EasingStyle.Quart,
-                Enum.EasingDirection.Out
-            ),
-            {
-                Size = UDim2.new(0, 350, 0, 40)
-            }
-        ):Play()
+        MainFrame.Size =
+            UDim2.new(0, 350, 0, 40)
 
         Container.Visible = false
 
     else
 
-        TweenService:Create(
-            MainFrame,
-            TweenInfo.new(
-                0.4,
-                Enum.EasingStyle.Quart,
-                Enum.EasingDirection.Out
-            ),
-            {
-                Size = UDim2.new(0, 350, 0, 400)
-            }
-        ):Play()
+        MainFrame.Size =
+            UDim2.new(0, 350, 0, 400)
 
         Container.Visible = true
 
@@ -531,35 +625,43 @@ end)
 
 CloseBtn.MouseButton1Click:Connect(function()
 
-    autoTog = false
-    AntiAFKEnabled = false
+    getgenv().BALJITOT_RUNNING = false
 
-    if getgenv().BALJITOTAntiAFKConnection then
+    AntiAFKEnabled = false
+    AutoSummitEnabled = false
+    ReconnectEnabled = false
+
+    if getgenv().BALJITOT_AFK_CONNECTION then
 
         pcall(function()
-            getgenv().BALJITOTAntiAFKConnection:Disconnect()
+            getgenv().BALJITOT_AFK_CONNECTION:Disconnect()
         end)
 
-        getgenv().BALJITOTAntiAFKConnection = nil
+        getgenv().BALJITOT_AFK_CONNECTION = nil
 
     end
 
-    local closeTween = TweenService:Create(
-        MainFrame,
-        TweenInfo.new(
-            0.4,
-            Enum.EasingStyle.Quart,
-            Enum.EasingDirection.In
-        ),
-        {
-            Size = UDim2.new(0, 350, 0, 0)
-        }
-    )
-
-    closeTween:Play()
-
-    closeTween.Completed:Connect(function()
-        ScreenGui:Destroy()
-    end)
+    ScreenGui:Destroy()
 
 end)
+
+--==================================================
+-- OPEN ANIMATION
+--==================================================
+
+TweenService:Create(
+    MainFrame,
+    TweenInfo.new(
+        0.6,
+        Enum.EasingStyle.Quart,
+        Enum.EasingDirection.Out
+    ),
+    {
+        Size =
+            UDim2.new(0, 350, 0, 400)
+    }
+):Play()
+
+print(
+    "[BALJITOT] Auto Summit: ON | Anti-AFK: ON | Auto Reconnect: ON"
+)
