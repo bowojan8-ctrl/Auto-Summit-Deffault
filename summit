@@ -438,7 +438,7 @@ AutoBtn.MouseButton1Click:Connect(function()
                     teleportTo(cp)
 
                     -- Delay antar checkpoint
-                    task.wait(3)
+                    task.wait(5)
 
                 end
 
