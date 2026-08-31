@@ -275,7 +275,7 @@ task.spawn(function()
                 if i == #checkpoints then
 
                     -- Tunggu summit terdaftar
-                    task.wait(3)
+                    task.wait(4)
 
                     if not AutoSummitEnabled then
                         break
@@ -287,11 +287,11 @@ task.spawn(function()
                     end)
 
                     -- Tunggu setelah reset
-                    task.wait(3)
+                    task.wait(6)
 
                 else
 
-                    task.wait(1)
+                    task.wait(4)
 
                 end
 
@@ -331,7 +331,7 @@ if ReconnectEnabled then
                 tostring(errorMessage)
             )
 
-            task.wait(5)
+            task.wait(6)
 
             if ReconnectEnabled then
 
@@ -365,7 +365,7 @@ if ReconnectEnabled then
                     tostring(message)
                 )
 
-                task.wait(5)
+                task.wait(6)
 
                 pcall(function()
 
